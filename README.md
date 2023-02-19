@@ -13,7 +13,6 @@ The toolkit is fully compatible with PyTorch and its associated deep-learning li
 pip install whoiswho
 ```
 
-## Pipeline
 
 ## Pipeline
 The WhoIsWho toolkit aims at providing lightweight APIs to facilitate researchers to build SOTA name disambiguation algorithms with several lines of code. The abstraction has 4 parts:
