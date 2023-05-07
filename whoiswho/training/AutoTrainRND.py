@@ -1,0 +1,191 @@
+import os
+import pickle
+import sys
+import copy
+import logging
+import random
+import time
+from collections import defaultdict
+import multiprocessing
+from typing import List, Dict, Any
+import numpy as np
+
+from whoiswho.config import RNDFilePathConfig, log_time, version2path
+from whoiswho.utils import set_log, load_pickle, save_pickle, load_json, save_json
+from whoiswho.loadmodel.ClassficationModels import GBDTModel
+
+
+
+def get_cell_pred(cell_model, unass_pid2aid, eval_feat_data, cell_feat_list):
+    unass_pid2aid2score = defaultdict(dict)
+    for unass_pid, candi_aids in unass_pid2aid:
+        candi_feat = []
+        for candi_aid in candi_aids:
+            candi_feat.append(eval_feat_data.get_whole_feat(unass_pid, candi_aid, cell_feat_list))
+        candi_preds = cell_model.predict(candi_feat)
+        for candi_index, candi_aid in enumerate(candi_aids):
+            unass_pid2aid2score[unass_pid][candi_aid] = float(candi_preds[candi_index])
+    return unass_pid2aid2score
+
+def get_result(cell_model, unass_pid2aid, eval_feat_data, cell_config, cell_i, res_unass_aid2score_list,
+               cell_weight_sum, model_save_dir, info):
+    this_cell_res = defaultdict(dict)
+    unass_pid2aid_cell_i = get_cell_pred(cell_model, unass_pid2aid, eval_feat_data, cell_config['feature_list'])
+
+    for unass_pid, unass_aids in unass_pid2aid:
+        for unass_aid in unass_aids:
+            this_cell_res[unass_pid][unass_aid] = unass_pid2aid_cell_i[unass_pid][unass_aid]
+            if cell_i == 0:
+                res_unass_aid2score_list[unass_pid][unass_aid] = unass_pid2aid_cell_i[unass_pid][unass_aid] * \
+                                                                 cell_config['cell_weight'] / cell_weight_sum
+            else:
+                res_unass_aid2score_list[unass_pid][unass_aid] += unass_pid2aid_cell_i[unass_pid][unass_aid] * \
+                                                                  cell_config['cell_weight'] / cell_weight_sum
+    save_json(dict(this_cell_res), model_save_dir, f'result_score_cell{cell_i}.{info}.json')
+def deal_nil_threshold_new(score_path, save_dir, info, thres=0.7):
+    res_unass_aid2score_list = load_json(score_path)
+    result = defaultdict(list)
+    ass_papers = 0
+    max_score = -1
+    for pid, aid2score in res_unass_aid2score_list.items():
+        tmp_scores = []
+        for aid, score in aid2score.items():
+            tmp_scores.append((aid, score))
+        if len(tmp_scores) == 0:
+            continue
+        tmp_scores.sort(key=lambda x: x[1], reverse=True)
+        max_score = max(max_score, tmp_scores[0][1])
+        if tmp_scores[0][1] >= thres:
+            ass_papers += 1
+            result[tmp_scores[0][0]].append(pid.split('-')[0])
+    log_msg = f'ass_papers= {ass_papers}, max_score={max_score}.'
+    print(log_msg)
+    logging.warning(log_msg)
+    save_json(dict(result), save_dir, f'result.{info}.json')
+
+
+
+def test_config2data(test_config):
+    ''' 将测试配置转换为需要的中间变量 '''
+    eval_feat_data = FeatDataLoader(test_config)
+    unass_list = load_json(test_config['unass_path'])
+    unass_name2aid2pid_v1 = load_json(test_config['name2aid2pid'])
+    unass_pid2aid = []  # [pid, [candi_aid,]]
+    # 获取测试集
+    if debug_mod:
+        unass_list = unass_list[:40]
+    for unass_pid, name in unass_list:
+        candi_aids = list(unass_name2aid2pid_v1[name])
+        unass_pid2aid.append((unass_pid, candi_aids))
+    return eval_feat_data, unass_pid2aid
+
+
+
+class RNDTrainer:
+    '''
+    init 根据version提供各类数据与特征路径
+    fit:给训练数据、特征 和模型 能训练model
+    predict:给验证数据、特征 和训练好的模型 (根据 传参 判断直接有模型 或者通过路径加载)
+    '''
+    def __init__(self, version, processed_data_root = None, hand_feat_root=None, bert_feat_root=None):
+        self.v2path = version2path(version)
+        self.name = self.v2path['name']
+        self.task = self.v2path['task']  # RND SND
+        assert self.task == 'RND', 'This features' \
+                                   'only support RND task'
+        self.type = self.v2path['type']  # train valid test
+
+        # Modifying arguments when calling from outside
+        if processed_data_root:
+            self.processed_data_root = '../../dataset/'+self.v2path["processed_data_root"]
+        if hand_feat_root:
+            self.hand_feat_root = '../../featureGenerator'+self.v2path['hand_feat_root']
+        if bert_feat_root:
+            self.bert_feat_root = '../../featureGenerator'+self.v2path['bert_feat_root']
+
+        # 训练文件路径配置  train_config_list关系到GBDTModel的实例化
+        self.train_config_list = [
+        {
+            'train_path': self.processed_data_root + "/train/kfold_dataset/kfold_v1/train_ins.json",
+            'dev_path'  : self.processed_data_root + "/train/kfold_dataset/kfold_v1/test_ins.json",
+        },
+        {
+            'train_path': self.processed_data_root + "/train/kfold_dataset/kfold_v2/train_ins.json",
+            'dev_path'  : self.processed_data_root + "/train/kfold_dataset/kfold_v2/test_ins.json",
+        },
+        {
+            'train_path': self.processed_data_root + "/train/kfold_dataset/kfold_v3/train_ins.json",
+            'dev_path'  : self.processed_data_root + "/train/kfold_dataset/kfold_v3/test_ins.json",
+        },
+        {
+            'train_path': self.processed_data_root + "/train/kfold_dataset/kfold_v4/train_ins.json",
+            'dev_path'  : self.processed_data_root + "/train/kfold_dataset/kfold_v4/test_ins.json",
+        },
+        {
+            'train_path': self.processed_data_root + "/train/kfold_dataset/kfold_v5/train_ins.json",
+            'dev_path'  : self.processed_data_root + "/train/kfold_dataset/kfold_v5/test_ins.json",
+        },
+        ]
+
+        # train feature
+        self.train_feature_config = {
+            'bert_path': self.bert_feat_root + 'pid2aid2bert_feat.offline.pkl',
+            'hand_path': self.hand_feat_root + 'pid2aid2hand_feat.offline.pkl',
+
+        },
+        # valid set and test set config
+        self.test_config_v1 = {
+
+            'bert_path': self.bert_feat_root + 'pid2aid2bert_feat.onlinev1.pkl',
+            'hand_path': self.hand_feat_root + 'pid2aid2hand_feat.onlinev1.pkl',
+            'unass_path': self.processed_data_root + RNDFilePathConfig.unass_candi_v1_path,
+            'name2aid2pid': self.processed_data_root + RNDFilePathConfig.whole_name2aid2pid,
+        }
+        self.test_config_v2 = {
+
+            'bert_path': self.bert_feat_root + 'pid2aid2bert_feat.onlinev2.pkl',
+            'hand_path': self.hand_feat_root + 'pid2aid2hand_feat.onlinev2.pkl',
+            'unass_path': self.processed_data_root + RNDFilePathConfig.unass_candi_v2_path,
+            'name2aid2pid': self.processed_data_root + RNDFilePathConfig.whole_name2aid2pid,
+        }
+        # initialize model_save_dir
+        os.makedirs('save_model', exist_ok=True)
+        self.model = GBDTModel(self.train_config_list,
+                               os.path.join(f'save_model/{log_time}'))
+
+
+    def fit(self) -> list:
+        cell_model_list = self.model.fit(self.train_feature_config)
+        return cell_model_list
+
+    def predict(self,cell_model_list = None, cell_model_path_list: List[str] = None): #根据type选择使用valid or test config
+        if self.type == 'valid':
+            test_config = self.test_config_v1
+            eval_feat_data, unass_pid2aid = test_config2data(test_config)
+        else: #test
+            test_config = self.test_config_v2
+            eval_feat_data, unass_pid2aid = test_config2data(test_config)
+
+        if cell_model_path_list:
+            cell_model_list = self.model.load(cell_model_path_list)
+
+        res_unass_aid2score_list = defaultdict(dict)
+
+        for cell_i, cell_config in enumerate(self.model.cell_list_config):
+            cell_model = cell_model_list[cell_i]
+            get_result(cell_model, unass_pid2aid, eval_feat_data, cell_config, cell_i,
+                       res_unass_aid2score_list,
+                       self.model.cell_weight_sum, self.model.model_save_dir, f'{self.type}_pred')
+
+        # 存储最后经所有cell_model vote的结果:
+        score_result_path_v1 = os.path.join(self.model.model_save_dir, f'result_score_vote.{self.type}.json')
+        save_json(dict(res_unass_aid2score_list), score_result_path_v1)
+        # 通过阈值过滤掉NIL的paper  NIL不进入最后的分配结果中
+        deal_nil_threshold_new(
+            score_result_path_v1, self.model.model_save_dir, f'{self.type}', 0.65
+
+        )  # 即分数在0.65以下视为NIL 对此论文不进行分配
+
+
+
+

@@ -9,7 +9,7 @@ def version2path(version: dict) -> dict:
     """
     Map the dataset information to the corresponding path
     """
-    name, task, type=list(version.values())
+    name, task, type = list(version.values())
     data_root = f"data/{name}/{task}/" #using in ./dataset
     feat_root = f"feat/{name}/{task}/" #using in ./featureGenerator
 
@@ -38,7 +38,7 @@ def version2path(version: dict) -> dict:
 
 
 
-paper_idf_dir = 'saved/paper_idf/'
+paper_idf_dir = 'saved/paper-tf-idf/'
 pretrained_oagbert_path = "saved/oagbert-v2-sim/"
 
 configs = {
@@ -102,16 +102,7 @@ class RNDFilePathConfig:
     feat_dict_path = 'feat/'
 
     '''
-    #hand feat
-    offline_hand_feat_path = hand_feat_root + 'pid2aid2hand_feat.offline.pkl'
-    cna_v1_hand_feat_path = hand_feat_root + 'pid2aid2hand_feat.onlinev1.pkl'
-    cna_v2_hand_feat_path = hand_feat_root + 'pid2aid2hand_feat.onlinev2.pkl'
-    whoiswhograph_offline_hand_feat_path = hand_feat_root +'whoiswhograph_pid2aid2hand_feat.offline.pkl'
-
     #bert simi feat
-    offline_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.offline.pkl'
-    cna_v1_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev1.pkl'
-    cna_v2_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev2.pkl'
 
     tmp_offline_bert_emb_save_path = bert_feat_root + 'train/'
     tmp_cna_v1_bert_emb_feat_save_path = bert_feat_root + 'online_testv1/'
@@ -120,6 +111,10 @@ class RNDFilePathConfig:
     tmp_offline_bert_simi_feat_save_path = bert_feat_root + 'train/'
     tmp_cna_v1_bert_simi_feat_save_path = bert_feat_root + 'online_testv1/'
     tmp_cna_v2_bert_simi_feat_save_path = bert_feat_root + 'online_testv2/'
+    
+    offline_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.offline.pkl'
+    cna_v1_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev1.pkl'
+    cna_v2_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev2.pkl'
 
 
     # graph simi feat 预备文件  "Hong_Li.pickle" is [(aid,author_path)...]

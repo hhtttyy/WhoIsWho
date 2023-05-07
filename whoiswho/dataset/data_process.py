@@ -10,7 +10,7 @@ from whoiswho.character.name_match.tool.is_chinese import cleaning_name
 from whoiswho.character.name_match.tool.interface import FindMain
 from whoiswho.config import RNDFilePathConfig, configs, version2path
 from whoiswho.dataset import load_utils
-
+'''This module is only used to split the RND data. '''
 
 def printInfo(dicts):
     aNum = 0
@@ -108,7 +108,7 @@ def split_train2dev(data: list,processed_data_root: str, unass_ratio=0.2):
 
 
 def get_author_index_father(params):
-    ''' 为多线程封装的函数 '''
+    ''' Functions wrapped by multiprocessing  '''
     unass_pid, name, dnames = params
     author_res = FindMain(name, dnames)[0]
     if len(author_res) > 0:
@@ -141,7 +141,7 @@ def get_name2aid2pid(raw_data_root,processed_data_root,name2aid2pids_path):
     key_names = list(name_aid_pid.keys())
     new_name2aid2pids = defaultdict(dict)
 
-    for i in tqdm(range(len(key_names)),desc='names'):
+    for i in range(len(key_names)):
         name = key_names[i]
         aid2pid = name_aid_pid[name]
         for aid, pids in aid2pid.items():
@@ -224,7 +224,7 @@ def pretreat_unass(raw_data_root,processed_data_root,unass_candi_path, unass_lis
             unass_candi.append((pid, whole_candi_names[aidx]))
         else:
             not_match += 1
-            print(i)
+            print(i)   #Print the information of papers that were not found ambiguous names
     print("Matched: %d Not Match: %d" % (len(unass_candi), not_match))
 
     # print(unass_candi_path)
@@ -233,7 +233,7 @@ def pretreat_unass(raw_data_root,processed_data_root,unass_candi_path, unass_lis
 
 
 def split_list2kfold(s_list, k, start_index=0):
-    # 将输入列表划分为 k 份
+    # Partition the input list into k parts
     num = len(s_list)
     each_l = int(num / k)
     result = []
@@ -317,7 +317,7 @@ def kfold_main_func(processed_data_root,offline_whole_profile, offline_whole_una
     print(name_weight)
 
 
-def SplitDataRND(ret,version):
+def splitdata_RND(ret,version):
 
     random.seed(66)
     v2path = version2path(version)
@@ -325,7 +325,7 @@ def SplitDataRND(ret,version):
     raw_data_root = v2path['raw_data_root']
     processed_data_root = v2path["processed_data_root"]
 
-    # 划分数据集
+    # Partition train set by year
     split_train2dev(data=ret,
                     processed_data_root=processed_data_root,
                     unass_ratio=0.2)
@@ -337,7 +337,7 @@ def SplitDataRND(ret,version):
     # train+valid name2aid2pid
     get_name2aid2pid(raw_data_root,processed_data_root,name2aid2pids_path=RNDFilePathConfig.whole_name2aid2pid)
 
-    # Papers that have not been assigned in the valid set and test set
+    # Papers that have not been assigned
     pretreat_unass(raw_data_root,processed_data_root,RNDFilePathConfig.unass_candi_v1_path, "valid/cna_valid_unass.json",
                    "valid/cna_valid_unass_pub.json")
     pretreat_unass(raw_data_root,processed_data_root,RNDFilePathConfig.unass_candi_v2_path, "test/cna_test_unass.json",
@@ -346,4 +346,4 @@ def SplitDataRND(ret,version):
 
 if __name__ == '__main__':
     train, version = load_utils.LoadData(name="v3", type="train", task='RND', partition=None)
-    SplitDataRND(train,version)
+    splitdata_RND(train,version)

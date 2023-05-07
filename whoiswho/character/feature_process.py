@@ -20,7 +20,7 @@ from collections import Counter
 from operator import itemgetter
 from tqdm import tqdm
 
-from whole_config import paper_idf_dir
+from whoiswho.config import paper_idf_dir
 
 np.set_printoptions(suppress=True)
 num_thread = int(multiprocessing.cpu_count() / 2)
@@ -31,7 +31,8 @@ class featureGeneration:
         self.__loadEssential()
 
     def __loadEssential(self):
-        data_dir = paper_idf_dir
+        data_dir = '../../'+paper_idf_dir
+        # print(data_dir)
         with open(data_dir + '/name_uniq_dict.json', "r") as file:
             self.name_uniq_dict = json.load(file)
         with open(data_dir + '/venue_idf.json', "r") as file:
