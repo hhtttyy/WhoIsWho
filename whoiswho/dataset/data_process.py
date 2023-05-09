@@ -1,16 +1,225 @@
 import os
+import codecs
+import re
 import random
 import copy
 from collections import defaultdict
 import multiprocessing
 from tqdm import tqdm
 from pprint import pprint
-from whoiswho.utils import load_json, save_json, get_author_index, dname_l_dict
+from whoiswho.utils import load_json, save_json, get_author_index, dname_l_dict,unify_name_order
 from whoiswho.character.name_match.tool.is_chinese import cleaning_name
 from whoiswho.character.name_match.tool.interface import FindMain
+from whoiswho.character.match_name import  match_name
 from whoiswho.config import RNDFilePathConfig, configs, version2path
 from whoiswho.dataset import load_utils
-'''This module is only used to split the RND data. '''
+puncs = '[!“”"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~—～’]+'
+stopwords = ['at', 'based', 'in', 'of', 'for', 'on', 'and', 'to', 'an', 'using', 'with',
+            'the', 'by', 'we', 'be', 'is', 'are', 'can']
+stopwords_extend = ['university', 'univ', 'china', 'department', 'dept', 'laboratory', 'lab',
+                    'school', 'al', 'et', 'institute', 'inst', 'college', 'chinese', 'beijing',
+                    'journal', 'science', 'international', 'key', 'sciences', 'research',
+                    'academy', 'state', 'center']
+stopwords_check = ['a', 'was', 'were', 'that', '2', 'key', '1', 'technology', '0', 'sciences', 'as',
+                    'from', 'r', '3', 'academy', 'this', 'nanjing', 'shanghai', 'state', 's', 'research',
+                    'p', 'results', 'peoples', '4', 'which', '5', 'high', 'materials', 'study', 'control',
+                    'method', 'group', 'c', 'between', 'or', 'it', 'than', 'analysis', 'system',  'sci',
+                    'two', '6', 'has', 'h', 'after', 'different', 'n', 'national', 'japan', 'have', 'cell',
+                    'time', 'zhejiang', 'used', 'data', 'these']
+
+
+def read_pubs(raw_data_root,mode):
+
+    if mode == 'train':
+        pubs = load_json(os.path.join(raw_data_root, "train", "train_pub.json"))
+    elif mode == 'valid':
+        pubs = load_json(os.path.join(raw_data_root, "valid", "sna_valid_pub.json"))
+    elif mode == 'test':
+        pubs = load_json(os.path.join(raw_data_root, 'test', 'sna_test_pub.json'))
+    else:
+        raise ValueError('choose right mode')
+
+    return pubs
+
+
+def read_raw_pubs(raw_data_root,mode):
+
+    if mode == 'train':
+        raw_pubs = load_json(os.path.join(raw_data_root, "train", "train_author.json"))
+    elif mode == 'valid':
+        raw_pubs = load_json(os.path.join(raw_data_root, "valid", "sna_valid_example.json"))
+    elif mode == 'test':
+        raw_pubs = load_json(os.path.join(raw_data_root, 'test', 'sna_test_raw.json'))
+    else:
+        raise ValueError('choose right mode')
+
+    return raw_pubs
+
+
+def dump_name_pubs(raw_data_root,processed_data_root):
+
+    for mode in ['train', 'valid', 'test']:
+        # train valid format: name2aid2pid
+        # test format: name2pid
+        raw_pubs = read_raw_pubs(raw_data_root,mode) #train_author / valid_ground_truth / sna_test_raw
+        pubs = read_pubs(raw_data_root,mode) #train_pub / sna_valid_pub / sna_test_pub
+
+        file_path = os.path.join(processed_data_root, 'names_pub',mode) #processed_data/names_pub/(mode)
+
+        if not os.path.exists(file_path):
+            os.makedirs(file_path, exist_ok=True)
+            for name in tqdm(raw_pubs):
+                name_pubs_raw = {}
+                if mode == "test":
+                    for i, pid in enumerate(raw_pubs[name]):
+                        name_pubs_raw[pid] = pubs[pid]
+                else: # "valid" or "train"
+                    pids = []
+                    for aid in raw_pubs[name]:
+                        pids.extend(raw_pubs[name][aid]) #得到name下所有作者的所有论文
+                    for pid in pids:
+                        name_pubs_raw[pid] = pubs[pid]
+                save_json(name_pubs_raw, os.path.join(file_path, name+'.json'))
+
+        #  v3/SND/processed_data  train valid test文件夹下分别存放name对应的json
+
+
+def dump_features_relations_to_file(raw_data_root,processed_data_root):
+    """
+    Generate paper features and relations by raw publication data and dump to files.
+    Paper features consist of title, org, keywords. Paper relations consist of author_name, org, venue.
+
+    20230508@chengyq:
+    抽取每个待消歧名字下论文之间的关系数据，按照每行一条关系 paper_id \t relation (如：zEzLfzXl	miaogaojian)的形式
+    组织成txt文件。
+    对训练集、验证集和测试集的数据均进行抽取，并按照姓名存储，如data/relations/train/aimin_li下，包括了train-set中作者aimin_li
+    的四份关系文件，共存储了paper-author, paper-org, paper-venue, paper-title四类关系。
+    """
+
+    texts_dir = os.path.join(processed_data_root, 'extract_text')
+
+    os.makedirs(texts_dir, exist_ok=True)
+    wf = codecs.open(os.path.join(texts_dir, 'paper_features.txt'), 'w', encoding='utf-8')
+    r = '[!“”"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~—～’]+'
+
+    for mode in ['train', 'valid', 'test']:
+        raw_pubs = read_raw_pubs(mode)
+        for n, name in tqdm(enumerate(raw_pubs)):  # 遍历逐个name
+
+            file_path = os.path.join(processed_data_root, 'relations', mode, name)
+            os.makedirs(file_path, exist_ok=True)
+            coa_file = open(os.path.join(file_path, 'paper_author.txt'), 'w', encoding='utf-8')
+            cov_file = open(os.path.join(file_path, 'paper_venue.txt'), 'w', encoding='utf-8')
+            cot_file = open(os.path.join(file_path, 'paper_title.txt'), 'w', encoding='utf-8')
+            coo_file = open(os.path.join(file_path, 'paper_org.txt'), 'w', encoding='utf-8')
+
+            authorname_dict = {}  # maintain a author-name-dict
+            pubs_dict = load_json(os.path.join(processed_data_root, 'names_pub', mode, name + '.json'))
+
+            ori_name = name
+            name, name_reverse = unify_name_order(name)
+
+            for i, pid in enumerate(pubs_dict):
+                paper_features = []
+                pub = pubs_dict[pid]
+
+                # Save title (relations)
+                title = pub["title"]
+                pstr = title.strip()
+                pstr = pstr.lower()
+                pstr = re.sub(r, ' ', pstr)
+                pstr = re.sub(r'\s{2,}', ' ', pstr).strip()
+                pstr = pstr.split(' ')
+                pstr = [word for word in pstr if len(word) > 1]
+                pstr = [word for word in pstr if word not in stopwords]
+                pstr = [word for word in pstr if word not in stopwords_check]
+                for word in pstr:
+                    cot_file.write(pid + '\t' + word + '\n')
+
+                # Save keywords
+                word_list = []
+                if "keywords" in pub:
+                    for word in pub["keywords"]:
+                        word_list.append(word)
+                    pstr = " ".join(word_list)
+                    pstr = re.sub(' +', ' ', pstr)
+                keyword = pstr
+
+                # Save org (relations)
+                org = ""
+                find_author = False
+                for author in pub["authors"]:
+                    authorname = ''.join(filter(str.isalpha, author['name'])).lower()
+                    token = authorname.split(" ")
+                    # 20230508@chengyq: 对姓名进行预处理，首先初步对姓和名进行划分，存储两种顺序的姓名，然后将其存储在一个字典中，以便后续将不同顺序的姓名统一
+                    if len(token) == 2:
+                        # 20230508@chengyq: 成功提取了姓和名
+                        authorname = token[0] + token[1]
+                        authorname_reverse = token[1] + token[0]
+                        if authorname not in authorname_dict:
+                            if authorname_reverse not in authorname_dict:
+                                authorname_dict[authorname] = 1
+                            else:
+                                authorname = authorname_reverse
+                    else:
+                        # 20230508@chengyq: 姓或者名被过度分割，简单地将空格删去
+                        authorname = authorname.replace(" ", "")
+
+                    if authorname != name and authorname != name_reverse:
+                        coa_file.write(pid + '\t' + authorname + '\n')  # current name is a name of co-author
+                    else:
+                        if "org" in author:
+                            org = author["org"]  # current name is a name for disambiguating
+                            find_author = True
+
+                if not find_author:
+                    for author in pub['authors']:
+                        if match_name(author['name'], ori_name):
+                            org = author['org']
+                            break
+
+                pstr = org.strip()
+                pstr = pstr.lower()
+                pstr = re.sub(puncs, ' ', pstr)
+                pstr = re.sub(r'\s{2,}', ' ', pstr).strip()
+                pstr = pstr.split(' ')
+                pstr = [word for word in pstr if len(word) > 1]
+                pstr = [word for word in pstr if word not in stopwords]
+                pstr = [word for word in pstr if word not in stopwords_extend]
+                pstr = set(pstr)
+                for word in pstr:
+                    coo_file.write(pid + '\t' + word + '\n')
+
+                # Save venue (relations)
+                if pub["venue"]:
+                    pstr = pub["venue"].strip()
+                    pstr = pstr.lower()
+                    pstr = re.sub(puncs, ' ', pstr)
+                    pstr = re.sub(r'\s{2,}', ' ', pstr).strip()
+                    pstr = pstr.split(' ')
+                    pstr = [word for word in pstr if len(word) > 1]
+                    pstr = [word for word in pstr if word not in stopwords]
+                    pstr = [word for word in pstr if word not in stopwords_extend]
+                    pstr = [word for word in pstr if word not in stopwords_check]
+                    for word in pstr:
+                        cov_file.write(pid + '\t' + word + '\n')
+                    if len(pstr) == 0:
+                        cov_file.write(pid + '\t' + 'null' + '\n')
+
+                paper_features.append(
+                    title + keyword + org
+                )  # 文件主要信息 title keyword org
+                wf.write(pid + '\t' + ' '.join(paper_features) + '\n')
+
+            coa_file.close()
+            cov_file.close()
+            cot_file.close()
+            coo_file.close()
+        print(f'Finish {mode} data extracted.')
+    print(f'All paper features extracted.')
+    wf.close()
+
+    # v3/SND/processed_data/relations/train(数据集类型)/作者名name  paper_author.txt  paper_venue.txt paper_title.txt paper_org.txt
 
 def printInfo(dicts):
     aNum = 0
@@ -316,10 +525,19 @@ def kfold_main_func(processed_data_root,offline_whole_profile, offline_whole_una
         save_json(dev_ins, this_root, 'test_ins.json')
     print(name_weight)
 
+def processdata_SND(ret,version):
+    v2path = version2path(version)
+    pprint(v2path)
+    raw_data_root = v2path['raw_data_root']
+    processed_data_root = v2path["processed_data_root"]
 
-def splitdata_RND(ret,version):
+    dump_name_pubs(raw_data_root,processed_data_root)
+    # dump_plain_texts_to_file(raw_data_root,processed_data_root)
+    dump_features_relations_to_file(raw_data_root,processed_data_root)
 
-    random.seed(66)
+def processdata_RND(ret,version):
+
+    # random.seed(66)
     v2path = version2path(version)
     pprint(v2path)
     raw_data_root = v2path['raw_data_root']
@@ -346,4 +564,4 @@ def splitdata_RND(ret,version):
 
 if __name__ == '__main__':
     train, version = load_utils.LoadData(name="v3", type="train", task='RND', partition=None)
-    splitdata_RND(train,version)
+    processdata_RND(train,version)

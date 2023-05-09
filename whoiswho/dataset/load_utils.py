@@ -74,6 +74,10 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
                                    f"na-{name}",
                                    f"sna_valid_pub.json")
                 url_list.append((url, "sna_valid_pub.json"))
+                url = os.path.join(DATA_PATH,
+                                   f"na-{name}",
+                                   f"sna_valid_example.json")
+                url_list.append((url, "sna_valid_example.json"))
 
         else :
             if task == 'RND':

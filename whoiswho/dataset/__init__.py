@@ -1,2 +1,2 @@
 from .load_utils import LoadData
-from .data_process import splitdata_RND
+from .data_process import processdata_RND

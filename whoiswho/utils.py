@@ -129,10 +129,21 @@ def get_author_index(name, dnames, l_must_in_r=False):
         return hits[0]
     return res_aidx
 
+def unify_name_order(name):
+    """
+    unifying different orders of name.
+    Args:
+        name
+    Returns:
+        name and reversed name
+    """
+    token = name.split("_")
+    name = token[0] + token[1]
+    name_reverse = token[1] + token[0]
+    if len(token) > 2:
+        name = token[0] + token[1] + token[2]
+        name_reverse = token[2] + token[0] + token[1]
 
-def main():
-    pass
+    return name, name_reverse
 
 
-if __name__ == '__main__':
-    main()
