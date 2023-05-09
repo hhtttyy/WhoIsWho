@@ -11,3 +11,4 @@ gensim==3.8.3
 cogdl==0.5.3
 catboost==0.24.4
 scikit_learn==1.1.2
+pinyin==0.4.0

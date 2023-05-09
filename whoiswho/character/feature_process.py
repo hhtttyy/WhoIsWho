@@ -19,7 +19,8 @@ from .name_match.tool.interface import MatchName
 from collections import Counter
 from operator import itemgetter
 from tqdm import tqdm
-
+import sys,os
+sys.path.append('../../')
 from whoiswho.config import paper_idf_dir
 
 np.set_printoptions(suppress=True)
@@ -31,8 +32,9 @@ class featureGeneration:
         self.__loadEssential()
 
     def __loadEssential(self):
-        data_dir = '../../'+paper_idf_dir
-        # print(data_dir)
+        # data_dir = os.path.abspath('../../'+paper_idf_dir)
+        data_dir = os.path.abspath('./whoiswho/' + paper_idf_dir)
+        print(data_dir)
         with open(data_dir + '/name_uniq_dict.json', "r") as file:
             self.name_uniq_dict = json.load(file)
         with open(data_dir + '/venue_idf.json', "r") as file:

@@ -12,14 +12,11 @@ import numpy as np
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
-
+sys.path.append('../../')
 from whoiswho.config import RNDFilePathConfig, log_time, version2path
 from whoiswho.utils import set_log, load_pickle, save_pickle, load_json, save_json
-
+from whoiswho import logger
 xgb_njob = int(multiprocessing.cpu_count() / 2)
-
-# debug_mod = True if sys.gettrace() else False
-debug_mod = False
 
 
 def random_select_instance(train_ins, nil_ratio=0.2, min_neg_num=10):
@@ -133,26 +130,15 @@ def fit_gbd_model(gbd_model, whole_x, whole_y, gbd_type='xgb'):
 
 class FeatDataLoader:
     def __init__(self, feat_config):
-        self.cos_path = feat_config['cos_path']
-        self.euc_path = feat_config['euc_path']
-        self.inner_path = feat_config['inner_path']
         self.bert_path = feat_config['bert_path']
-
         self.hand_dict = load_pickle(feat_config['hand_path'])
         self.bert_dict = None
-        self.cos_dict = None
-        self.euc_dict = None
-        self.inner_dict = None
+
 
     def update_feat(self, feat_list):
         if 'bert' in feat_list and self.bert_dict is None:
             self.bert_dict = load_pickle(self.bert_path)
-        if 'cos' in feat_list and self.cos_dict is None:
-            self.cos_dict = load_pickle(self.cos_path)
-        if 'euc' in feat_list and self.euc_dict is None:
-            self.euc_dict = load_pickle(self.euc_path)
-        if 'inner' in feat_list and self.inner_dict is None:
-            self.inner_dict = load_pickle(self.inner_path)
+
 
     def get_whole_feat(self, unass_pid, candi_aid, feat_list):
         hand_feat = self.hand_dict[unass_pid][candi_aid]
@@ -160,17 +146,11 @@ class FeatDataLoader:
             whole_feature = np.hstack([self.bert_dict[unass_pid][candi_aid], hand_feat])
         else:
             whole_feature = np.array(hand_feat)
-        if 'cos' in feat_list:
-            whole_feature = np.hstack([whole_feature, self.cos_dict[unass_pid][candi_aid]])
-        if 'euc' in feat_list:
-            whole_feature = np.hstack([whole_feature, self.euc_dict[unass_pid][candi_aid]])
-        if 'inner' in feat_list:
-            whole_feature = np.hstack([whole_feature, self.inner_dict[unass_pid][candi_aid]])
         return whole_feature
 
 
 class CellModel:
-    def __init__(self, model_config, kfold):
+    def __init__(self, model_config, kfold, debug_mod = False):
         # print(model_config)
         assert len(model_config) <= 2
         lv1_model_list = []
@@ -202,6 +182,8 @@ class CellModel:
         self.lv2_gdb_type = lv2_gdb_type
         self.kfold = kfold
         self.has_lv2 = True if len(lv2_gdb_type) > 0 else False
+
+        self.debug_mod = debug_mod
 
     def fit(self, whole_x, whole_y, training_type, fold_i=None):
         # training_type 决定是训练第一层模型还是第二层模型
@@ -237,8 +219,8 @@ class CellModel:
             # 先做第一阶段训练
             log_msg = f'\n\ntraing fold {fold_i + 1}'
             print(log_msg)
-            logging.warning(log_msg)
-            if debug_mod:
+            logger.warning(log_msg)
+            if self.debug_mod:
                 train_ins = load_json(train_config['train_path'])[:200]
                 # train_ins = train_ins
                 dev_ins = load_json(train_config['dev_path'])[:200]
@@ -347,15 +329,13 @@ class CellModel:
 
 
 
-
-
 class GBDTModel:
     def __init__(self,
                  train_config_list,
                  model_save_dir):
-
-        self.model_save_dir = model_save_dir
         self.train_config_list = train_config_list # k fold train data
+        self.model_save_dir = model_save_dir
+        #Model configuration
         self.cell_list_config = [
         {
             'cell_weight' : 5,
@@ -585,6 +565,14 @@ class GBDTModel:
         for cell_config in self.cell_list_config:
             self.cell_weight_sum += cell_config['cell_weight']
 
+    def train_cell_model_as_stacking(self,cell_config, train_config_list, train_feat_data: FeatDataLoader,
+                                     cell_save_root, cell_index: int):
+        '''train one cell '''
+        cell_feat_list = cell_config['feature_list']
+        cell_model = CellModel(cell_config['model'], len(train_config_list), debug_mod=False)
+        cell_model.train_model(train_config_list, train_feat_data, cell_feat_list)
+        save_pickle(cell_model, cell_save_root, f'cell-{cell_index}.pkl')
+        return cell_model
 
     def fit(self, train_feature_config):
         ''' train GBDT model'''
@@ -597,7 +585,7 @@ class GBDTModel:
             s_time = time.time()
             log_msg = f'\n\nbegin to train cell {cell_i + 1}.'
             print(log_msg)
-            logging.warning(log_msg)
+            logger.warning(log_msg)
             train_feat_data.update_feat(cell_config['feature_list'])
 
             if 'train_config_list' in cell_config:
@@ -612,14 +600,6 @@ class GBDTModel:
 
         return cell_model_list
 
-    def train_cell_model_as_stacking(self,cell_config, train_config_list, train_feat_data: FeatDataLoader,
-                                     cell_save_root, cell_index: int):
-        '''训练每个cell '''
-        cell_feat_list = cell_config['feature_list']
-        cell_model = CellModel(cell_config['model'], len(train_config_list))
-        cell_model.train_model(train_config_list, train_feat_data, cell_feat_list)
-        save_pickle(cell_model, cell_save_root, f'cell-{cell_index}.pkl')
-        return cell_model
 
     def load(self,cell_model_path_list):
         '''
@@ -633,6 +613,3 @@ class GBDTModel:
         return cell_model_list
 
 
-
-if __name__ == '__main__':
-    main()

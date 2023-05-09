@@ -30,6 +30,7 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
         raise ValueError(f"TASK must in {TASK_SET}")
     version={"name":name,"task":task,"type":type}
     ret = []
+
     if download:
         url_list = []
         # Check if the download path exists, and create it if it doesn't
@@ -65,6 +66,11 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
                                    f"na-{name}",
                                    f"cna_valid_unass_pub.json")
                 url_list.append((url, "cna_valid_unass_pub.json"))
+                url = os.path.join(DATA_PATH,
+                                   f"na-{name}",
+                                   f"cna_valid_ground_truth.json")
+                url_list.append((url, "cna_valid_ground_truth.json"))
+
             else:
                 url = os.path.join(DATA_PATH,
                                 f"na-{name}",
@@ -74,6 +80,10 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
                                    f"na-{name}",
                                    f"sna_valid_pub.json")
                 url_list.append((url, "sna_valid_pub.json"))
+                url = os.path.join(DATA_PATH,
+                                   f"na-{name}",
+                                   f"sna_valid_example.json")
+                url_list.append((url, "sna_valid_example.json"))
 
         else :
             if task == 'RND':
@@ -89,7 +99,7 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
                 url = os.path.join(DATA_PATH,
                                 f"na-{name}",
                                 f"sna_test_raw.json")
-                url_list.append((url, "sna_test_author_raw.json"))
+                url_list.append((url, "sna_test_raw.json"))
                 url = os.path.join(DATA_PATH,
                                    f"na-{name}",
                                    f"sna_test_pub.json")
@@ -164,14 +174,22 @@ def LoadData(name: str, type: str, task: str, path = './', download=True) -> Lis
 if __name__ == '__main__':
     '''RND task'''
     # 0: train_author.json  1: train_pub.json
-    # train,version = LoadData(name="v3", type="train",task='RND',partition=None)
+    # train,version = LoadData(name="v3", type="train",task='RND')
 
     # 0: whole_author_profiles.json 1: whole_author_profiles_pub.json  2: cna_valid_unass.json 3: cna_valid_unass_pub.json
-    # valid,version = LoadData(name="v3", type="valid",task='RND',partition=None)
+    # 4: cna_valid_ground_truth.json
+    # valid,version = LoadData(name="v3", type="valid",task='RND')
 
     # 0: cna_test_unass.json 1: cna_test_unass_pub.json
-    # test,version = LoadData(name="v3", type="test", task='RND',partition=None)
+    # test,version = LoadData(name="v3", type="test", task='RND')
 
     '''SND task'''
-    train, version = LoadData(name="v3", type="train", task='SND', partition=None)
+    # 0: train_author.json  1: train_pub.json
+    # train, version = LoadData(name="v3", type="train", task='SND')
+    # 0: sna_valid_raw.json  1: sna_valid_pub.json  2: sna_valid_example.json
+    # valid,version = LoadData(name="v3", type="valid",task='SND')
+    # 0: cna_test_unass.json 1: cna_test_unass_pub.json
+    # test,version = LoadData(name="v3", type="test", task='SND')
+
+
 

@@ -1,3 +1,1 @@
-'''
-@Author  ：hantianyi
-'''
+from .AutoTrainRND import RNDTrainer

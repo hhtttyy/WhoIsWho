@@ -1,9 +1,11 @@
+import os
 import sys
 import torch
 import torch.nn as nn
+sys.path.append('../../../')
 from whoiswho.config import configs
-from typing import Union
 
+from typing import Union
 from torch import Tensor
 import torch.nn.functional as F
 

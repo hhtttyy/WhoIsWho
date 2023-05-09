@@ -1,16 +1,20 @@
 import os
+import pickle
 import random
 import sys
 import time
 from collections import defaultdict
 import numpy as np
+sys.path.append('../../../')
 
 from whoiswho.config import RNDFilePathConfig, configs, version2path
 from whoiswho.character.feature_process import featureGeneration
 from whoiswho.utils import load_json, save_json, load_pickle, save_pickle
 from whoiswho.dataset import load_utils
+from whoiswho import logger
+
 # debug_mod = True if sys.gettrace() else False
-debug_mod = True
+debug_mod = False
 
 
 class ProcessFeature:
@@ -116,6 +120,10 @@ class AdhocFeatures:
     """
     def __init__(self,version, raw_data_root = None, processed_data_root = None,hand_feat_root = None):
         self.v2path = version2path(version)
+        self.raw_data_root = raw_data_root
+        self.processed_data_root = processed_data_root
+        self.hand_feat_root = hand_feat_root
+
         self.name = self.v2path['name']
         self.task = self.v2path['task'] #RND SND
         assert self.task == 'RND' , 'This features' \
@@ -123,12 +131,15 @@ class AdhocFeatures:
         self.type = self.v2path['type'] #train valid test
 
         #Modifying arguments when calling from outside
-        if raw_data_root:
-            self.raw_data_root = '../../dataset/'+self.v2path['raw_data_root']
-        if processed_data_root:
-            self.processed_data_root = '../../dataset/'+self.v2path["processed_data_root"]
-        if hand_feat_root:
-            self.hand_feat_root = '../'+self.v2path['hand_feat_root']
+        if not raw_data_root:
+            # self.raw_data_root = '../../dataset/'+self.v2path['raw_data_root']
+            self.raw_data_root = self.v2path['raw_data_root']
+        if not processed_data_root:
+            # self.processed_data_root = '../../dataset/'+self.v2path["processed_data_root"]
+            self.processed_data_root = self.v2path['processed_data_root']
+        if not hand_feat_root:
+            # self.hand_feat_root = '../'+self.v2path['hand_feat_root']
+            self.hand_feat_root = self.v2path['hand_feat_root']
 
         # self.data = ret
         if self.type == 'train':
@@ -165,7 +176,6 @@ class AdhocFeatures:
         genAdhocFeat= self.genAdhocFeat
         genFeatures = featureGeneration()
 
-
         rawFeatData, unassCandiAuthor = genAdhocFeat.getUnassFeat()
         print('begin multi_process_data')
         hand_feature_list = genFeatures.multi_process_data(rawFeatData)
@@ -183,9 +193,18 @@ class AdhocFeatures:
         save_pickle(pid2aid2cb_feat, self.feat_save_path)
 
 if __name__ == '__main__':
-    train, version = load_utils.LoadData(name="v3", type="valid", task='RND',download=False)
-
+    data, version = load_utils.LoadData(name="v3", type="train", task='RND',download=False)
     adhoc_features = AdhocFeatures(version)
     adhoc_features.get_hand_feature()
+    logger.info("Finish Train data")
 
+    data, version = load_utils.LoadData(name="v3", type="valid", task='RND',download=False)
+    adhoc_features = AdhocFeatures(version)
+    adhoc_features.get_hand_feature()
+    logger.info("Finish Valid data")
+
+    data, version = load_utils.LoadData(name="v3", type="test", task='RND', download=False)
+    adhoc_features = AdhocFeatures(version)
+    adhoc_features.get_hand_feature()
+    logger.info("Finish Test data")
 

@@ -10,9 +10,12 @@ def version2path(version: dict) -> dict:
     Map the dataset information to the corresponding path
     """
     name, task, type = list(version.values())
-    data_root = f"data/{name}/{task}/" #using in ./dataset
-    feat_root = f"feat/{name}/{task}/" #using in ./featureGenerator
+    # data_root = f"data/{name}/{task}/" #using in ./dataset
+    # feat_root = f"feat/{name}/{task}/" #using in ./featureGenerator
 
+    # using in demo.py
+    data_root = f"./whoiswho/dataset/data/{name}/{task}/"
+    feat_root = f"./whoiswho/featureGenerator/feat/{name}/{task}/"
 
     #data
     raw_data_root = data_root

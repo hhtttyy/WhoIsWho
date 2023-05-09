@@ -6,12 +6,14 @@ import random
 import pickle
 import torch
 from cogdl.oag import oagbert
-from model import bertEmbeddingLayer, matchingModel
+from whoiswho.featureGenerator.rndFeature.model import bertEmbeddingLayer, matchingModel
 import argparse
 import os
+sys.path.append('../../../')
 from whoiswho.config import RNDFilePathConfig, configs, version2path,pretrained_oagbert_path
 from whoiswho.dataset import load_utils
-debug_mod = True
+from whoiswho import logger
+debug_mod = False
 
 '''
 This file is used to generate bert_simi_feature:
@@ -23,7 +25,7 @@ Generating bert_simi_feature consists of two steps:
 
 
 class ProcessFeature:
-    def __init__(self, nameAidPid_path, prosInfo_path, unassCandi_path, validUnassPub_path, data_version="okk"):
+    def __init__(self, nameAidPid_path, prosInfo_path, unassCandi_path, validUnassPub_path):
 
         with open(nameAidPid_path, 'r') as files:
             self.nameAidPid = json.load(files)
@@ -41,13 +43,13 @@ class ProcessFeature:
 
         self.maxPapers = 40
         global bert_device
-        bert_device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
+        bert_device = torch.device(f'cuda:7' if torch.cuda.is_available() else 'cpu')
 
         self.matching_model = matchingModel(bert_device)
         self.matching_model.to(bert_device)
         self.matching_model.eval()
 
-        _, self.bertModel = oagbert("oagbert-v2-sim")
+        _, self.bertModel = oagbert('../../'+pretrained_oagbert_path)
         self.embedding_model = bertEmbeddingLayer(self.bertModel)
         self.embedding_model.to(bert_device)
         self.embedding_model.eval()
@@ -289,8 +291,7 @@ class ProcessFeature:
         # Save bert_simi feature file
         if not os.path.exists(bert_simi_save_path):
             os.makedirs(bert_simi_save_path, exist_ok=True)
-        if not os.path.exists(bert_simi_final_save_path):
-            os.makedirs(bert_simi_final_save_path, exist_ok=True)
+
         # get all bert_simi feature at one time
         if start == 0 and end == len(self.unassCandi):
             with open(bert_simi_final_save_path, 'wb') as files:
@@ -356,6 +357,10 @@ class OagbertFeatures:
         2.根据config 配置processFeature
         '''
         self.v2path = version2path(version)
+        self.raw_data_root = raw_data_root
+        self.processed_data_root = processed_data_root
+        self.bert_feat_root = bert_feat_root
+
         self.name = self.v2path['name']
         self.task = self.v2path['task']  # RND SND
         assert self.task == 'RND', 'This features' \
@@ -363,12 +368,15 @@ class OagbertFeatures:
         self.type = self.v2path['type']  # train valid test
 
         # Modifying arguments when calling from outside
-        if raw_data_root:
-            self.raw_data_root = '../../dataset/' + self.v2path['raw_data_root']
-        if processed_data_root:
-            self.processed_data_root = '../../dataset/' + self.v2path["processed_data_root"]
-        if bert_feat_root:
-            self.bert_feat_root = '../' + self.v2path['bert_feat_root']
+        if not raw_data_root:
+            # self.raw_data_root = '../../dataset/' + self.v2path['raw_data_root']
+            self.raw_data_root =  self.v2path['raw_data_root']
+        if not processed_data_root:
+            # self.processed_data_root = '../../dataset/' + self.v2path["processed_data_root"]
+            self.processed_data_root = self.v2path['processed_data_root']
+        if not bert_feat_root:
+            # self.bert_feat_root = '../' + self.v2path['bert_feat_root']
+            self.bert_feat_root = self.v2path['bert_feat_root']
 
         if self.type == 'train':
             self.config = {
@@ -403,7 +411,7 @@ class OagbertFeatures:
                 "bert_simi_final_save_path": self.bert_feat_root + 'pid2aid2bert_feat.onlinev2.pkl',
                 "start_end_index_pair_list": [(0, 3700), (3700, 7400), (7400, 11100), (11100, 14560)]
             }
-
+        #Different configs correspond to different ProcessFeatures
         self.genBertSimiFeat = ProcessFeature(self.config["nameAidPid_path"], self.config["prosInfo_path"],
                                               self.config["unassCandi_path"], self.config["validUnassPub_path"])
 
@@ -431,7 +439,17 @@ class OagbertFeatures:
 
 
 if __name__ == "__main__":
-    train, version = load_utils.LoadData(name="v3", type="valid", task='RND', download=False)
-
+    data, version = load_utils.LoadData(name="v3", type="train", task='RND', download=False)
     oagbert_features = OagbertFeatures(version)
     oagbert_features.get_oagbert_feature()
+    logger.info("Finish Train data")
+
+    data, version = load_utils.LoadData(name="v3", type="valid", task='RND', download=False)
+    oagbert_features = OagbertFeatures(version)
+    oagbert_features.get_oagbert_feature()
+    logger.info("Finish Valid data")
+
+    data, version = load_utils.LoadData(name="v3", type="test", task='RND', download=False)
+    oagbert_features = OagbertFeatures(version)
+    oagbert_features.get_oagbert_feature()
+    logger.info("Finish Test data")
