@@ -7,10 +7,8 @@ from collections import defaultdict
 import multiprocessing
 from tqdm import tqdm
 from pprint import pprint
-<<<<<<< HEAD
 from whoiswho import logger
-=======
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
+
 from whoiswho.utils import load_json, save_json, get_author_index, dname_l_dict,unify_name_order
 from whoiswho.character.name_match.tool.is_chinese import cleaning_name
 from whoiswho.character.name_match.tool.interface import FindMain
@@ -33,10 +31,6 @@ stopwords_check = ['a', 'was', 'were', 'that', '2', 'key', '1', 'technology', '0
 
 
 def read_pubs(raw_data_root,mode):
-<<<<<<< HEAD
-=======
-
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
     if mode == 'train':
         pubs = load_json(os.path.join(raw_data_root, "train", "train_pub.json"))
     elif mode == 'valid':
@@ -50,10 +44,6 @@ def read_pubs(raw_data_root,mode):
 
 
 def read_raw_pubs(raw_data_root,mode):
-<<<<<<< HEAD
-=======
-
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
     if mode == 'train':
         raw_pubs = load_json(os.path.join(raw_data_root, "train", "train_author.json"))
     elif mode == 'valid':
@@ -67,12 +57,8 @@ def read_raw_pubs(raw_data_root,mode):
 
 
 def dump_name_pubs(raw_data_root,processed_data_root):
-<<<<<<< HEAD
     for mode in ['valid', 'test']:  # ['train', 'valid', 'test']
-=======
 
-    for mode in ['train', 'valid', 'test']:
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
         # train valid format: name2aid2pid
         # test format: name2pid
         raw_pubs = read_raw_pubs(raw_data_root,mode) #train_author / valid_ground_truth / sna_test_raw
@@ -87,11 +73,9 @@ def dump_name_pubs(raw_data_root,processed_data_root):
                 if mode == "test":
                     for i, pid in enumerate(raw_pubs[name]):
                         name_pubs_raw[pid] = pubs[pid]
-<<<<<<< HEAD
+
                 else: #  "train" or "valid"
-=======
-                else: # "valid" or "train"
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
+
                     pids = []
                     for aid in raw_pubs[name]:
                         pids.extend(raw_pubs[name][aid]) #得到name下所有作者的所有论文
@@ -99,11 +83,6 @@ def dump_name_pubs(raw_data_root,processed_data_root):
                         name_pubs_raw[pid] = pubs[pid]
                 save_json(name_pubs_raw, os.path.join(file_path, name+'.json'))
 
-<<<<<<< HEAD
-
-=======
-        #  v3/SND/processed_data  train valid test文件夹下分别存放name对应的json
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
 
 
 def dump_features_relations_to_file(raw_data_root,processed_data_root):
@@ -242,7 +221,7 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
     wf.close()
 
     # v3/SND/processed_data/relations/train(数据集类型)/作者名name  paper_author.txt  paper_venue.txt paper_title.txt paper_org.txt
-<<<<<<< HEAD
+
 
 
 def dump_plain_texts_to_file(raw_data_root,processed_data_root):
@@ -352,9 +331,7 @@ def dump_plain_texts_to_file(raw_data_root,processed_data_root):
     print(f'All paper texts extracted.')
     wf.close()
 
-    # v3/SND/processed_data/plain_text.txt
-=======
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
+
 
 def printInfo(dicts):
     aNum = 0
@@ -702,13 +679,9 @@ def processdata_RND(ret,version):
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     # train, version = load_utils.LoadData(name="v3", type="train", task='RND')
     # processdata_RND(train,version)
 
     train, version = load_utils.LoadData(name="v3", type="train", task='SND')
     processdata_SND(train,version)
-=======
-    train, version = load_utils.LoadData(name="v3", type="train", task='RND', partition=None)
-    processdata_RND(train,version)
->>>>>>> 2ecbb74feb7522515d3be953f3a5b73d45e1118b
+
