@@ -10,15 +10,15 @@ from whoiswho import logger
     RND task
 '''
 # Module-1: Data Loading
-# train,version = LoadData(name="v3", type="train",task='RND')
-# valid,version = LoadData(name="v3", type="valid",task='RND')
-# test,version  = LoadData(name="v3", type="test", task='RND')
+train,version = LoadData(name="v3", type="train",task='RND')
+valid,version = LoadData(name="v3", type="valid",task='RND')
+test,version  = LoadData(name="v3", type="test", task='RND')
 
 # Split data into unassigned papers and candidate authors
 # Combine unassigned papers and candidate authors into train pairs.
-# train, version = LoadData(name="v3", type="train", task='RND', download=False)
-# processdata_RND(train,version)
-# logger.info("Finish pre-process")
+train, version = LoadData(name="v3", type="train", task='RND', download=False)
+processdata_RND(train,version)
+logger.info("Finish pre-process")
 
 # Modules-2: Feature Creation
 data, version = LoadData(name="v3", type="train", task='RND', download=False)
@@ -60,5 +60,6 @@ logger.info("Finish Predict Test data")
 
 # Modules-4: Evaluation on the valid data
 assignment = load_json('./whoiswho/training/result/result.valid.json')
-ground_truth = valid[4] #ground truth
+#Use the ground truth directly or load the downloaded ground truth
+ground_truth = valid[4]
 evaluate(assignment, ground_truth)

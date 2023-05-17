@@ -47,7 +47,7 @@ def read_raw_pubs(raw_data_root,mode):
     if mode == 'train':
         raw_pubs = load_json(os.path.join(raw_data_root, "train", "train_author.json"))
     elif mode == 'valid':
-        raw_pubs = load_json(os.path.join(raw_data_root, "valid", "sna_valid_example.json"))
+        raw_pubs = load_json(os.path.join(raw_data_root, "valid", "sna_valid_raw.json"))
     elif mode == 'test':
         raw_pubs = load_json(os.path.join(raw_data_root, 'test', 'sna_test_raw.json'))
     else:
@@ -63,26 +63,22 @@ def dump_name_pubs(raw_data_root,processed_data_root):
         # test format: name2pid
         raw_pubs = read_raw_pubs(raw_data_root,mode) #train_author / valid_ground_truth / sna_test_raw
         pubs = read_pubs(raw_data_root,mode) #train_pub / sna_valid_pub / sna_test_pub
-
         file_path = os.path.join(processed_data_root, 'names_pub',mode) #processed_data/names_pub/(mode)
 
         if not os.path.exists(file_path):
             os.makedirs(file_path, exist_ok=True)
             for name in tqdm(raw_pubs):
                 name_pubs_raw = {}
-                if mode == "test":
+                if mode == "test" or mode == 'valid':
                     for i, pid in enumerate(raw_pubs[name]):
                         name_pubs_raw[pid] = pubs[pid]
-
-                else: #  "train" or "valid"
-
+                else:
                     pids = []
                     for aid in raw_pubs[name]:
-                        pids.extend(raw_pubs[name][aid]) #得到name下所有作者的所有论文
+                        pids.extend(raw_pubs[name][aid])
                     for pid in pids:
                         name_pubs_raw[pid] = pubs[pid]
                 save_json(name_pubs_raw, os.path.join(file_path, name+'.json'))
-
 
 
 def dump_features_relations_to_file(raw_data_root,processed_data_root):
@@ -104,8 +100,8 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
     r = '[!“”"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~—～’]+'
 
     for mode in ['train', 'valid', 'test']:
-        raw_pubs = read_raw_pubs(mode)
-        for n, name in tqdm(enumerate(raw_pubs)):  # 遍历逐个name
+        raw_pubs = read_raw_pubs(raw_data_root,mode)
+        for n, name in enumerate(tqdm(raw_pubs)):  # 遍历逐个name
 
             file_path = os.path.join(processed_data_root, 'relations', mode, name)
             os.makedirs(file_path, exist_ok=True)
@@ -234,8 +230,8 @@ def dump_plain_texts_to_file(raw_data_root,processed_data_root):
     """
 
     train_pubs_dict = load_json(os.path.join(raw_data_root, 'train', 'train_pub.json'))
-    valid_pubs_dict = load_json(os.path.join(raw_data_root, 'sna-valid', 'sna_valid_pub.json'))
-    test_pubs_dict = load_json(os.path.join(raw_data_root, 'sna-test', 'sna_test_pub.json'))
+    valid_pubs_dict = load_json(os.path.join(raw_data_root, 'valid', 'sna_valid_pub.json'))
+    test_pubs_dict = load_json(os.path.join(raw_data_root, 'test', 'sna_test_pub.json'))
 
     pubs_dict = {}
     pubs_dict.update(train_pubs_dict)
@@ -249,7 +245,7 @@ def dump_plain_texts_to_file(raw_data_root,processed_data_root):
 
     authorname_dict = {}
 
-    for i, pid in tqdm(enumerate(pubs_dict)):
+    for i, pid in enumerate(tqdm(pubs_dict)):
         paper_features = []
         pub = pubs_dict[pid]
 
@@ -646,9 +642,9 @@ def processdata_SND(ret,version):
     dump_name_pubs(raw_data_root,processed_data_root)
     logger.info('Finish names')
     dump_plain_texts_to_file(raw_data_root,processed_data_root)
-    logger.info('Finish extract')
+    logger.info('Finish extract infos')
     dump_features_relations_to_file(raw_data_root,processed_data_root)
-    logger.info('Finish relations')
+    logger.info('Finish extract relations')
 
 
 def processdata_RND(ret,version):
