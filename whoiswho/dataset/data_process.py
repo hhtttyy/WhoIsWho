@@ -101,7 +101,7 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
 
     for mode in ['train', 'valid', 'test']:
         raw_pubs = read_raw_pubs(raw_data_root,mode)
-        for n, name in enumerate(tqdm(raw_pubs)):  # 遍历逐个name
+        for n, name in enumerate(tqdm(raw_pubs)):
 
             file_path = os.path.join(processed_data_root, 'relations', mode, name)
             os.makedirs(file_path, exist_ok=True)

@@ -1,11 +1,12 @@
 from whoiswho.utils import load_json, save_json
 
 #evaluation
-def evaluate(assignment,ground_truth):
+def evaluate(assignment,ground_truth,type):
     if isinstance(assignment, str):
         assignment=load_json(assignment)
+    if isinstance(ground_truth, str):
+        ground_truth=load_json(ground_truth)
 
-    # submit_data=util.open_json(assignment_path)
     submit_data=assignment
 
     result_list = []

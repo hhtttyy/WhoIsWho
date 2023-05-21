@@ -95,10 +95,13 @@ class RNDTrainer:
         self.type = self.v2path['type']  # train valid test
 
         # Modifying arguments when calling from outside
+        self.processed_data_root = processed_data_root
+        self.hand_feat_root = hand_feat_root
+        self.bert_feat_root = bert_feat_root
         if not processed_data_root:
             # self.processed_data_root = '../dataset/'+self.v2path["processed_data_root"]
             # self.processed_data_root = os.path.abspath(self.processed_data_root) + '/'
-            self.raw_data_root = self.v2path['raw_data_root']
+            self.processed_data_root = self.v2path['processed_data_root']
         if not hand_feat_root:
             # self.hand_feat_root = '../featureGenerator/'+self.v2path['hand_feat_root']
             # self.hand_feat_root = os.path.abspath(self.hand_feat_root) + '/'
@@ -167,7 +170,7 @@ class RNDTrainer:
 
     # use test data
     def predict(self,cell_model_list = None, cell_model_path_list: List[str] = None): #根据type选择使用valid or test config
-        os.makedirs('RND_result', exist_ok=True)
+        os.makedirs('./whoiswho/training/rnd_result', exist_ok=True)
         if self.type == 'valid':
             test_config = self.test_config_v1
             eval_feat_data, unass_pid2aid = test_config2data(test_config)  #debug_mod=True
@@ -185,15 +188,15 @@ class RNDTrainer:
             eval_feat_data.update_feat(cell_config['feature_list'])
             get_result(cell_model, unass_pid2aid, eval_feat_data, cell_config, cell_i,
                        res_unass_aid2score_list,
-                       self.model.cell_weight_sum, 'RND_result', f'{self.type}')
+                       self.model.cell_weight_sum, './whoiswho/training/rnd_result', f'{self.type}')
 
         # Store the final results of voting by all cell_models
-        score_result_path = os.path.join('RND_result', f'result_score_vote.{self.type}.json')
+        score_result_path = os.path.join('./whoiswho/training/rnd_result', f'result_score_vote.{self.type}.json')
         save_json(dict(res_unass_aid2score_list), score_result_path)
 
         # Set a threshold to filter NIL
         deal_nil_threshold_new(
-            score_result_path, 'RND_result', f'{self.type}', 0.65
+            score_result_path, './whoiswho/training/rnd_result', f'{self.type}', 0.65
 
         )
 

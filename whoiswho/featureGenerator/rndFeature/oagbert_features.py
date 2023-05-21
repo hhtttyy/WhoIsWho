@@ -49,7 +49,8 @@ class ProcessFeature:
         self.matching_model.to(bert_device)
         self.matching_model.eval()
 
-        _, self.bertModel = oagbert('../../'+pretrained_oagbert_path)
+        # _, self.bertModel = oagbert('../../'+pretrained_oagbert_path)
+        _, self.bertModel = oagbert('.whoiswho/' + pretrained_oagbert_path)
         self.embedding_model = bertEmbeddingLayer(self.bertModel)
         self.embedding_model.to(bert_device)
         self.embedding_model.eval()
@@ -347,7 +348,6 @@ def merge_final_simi_pickle(bert_simi_save_path, start_end_index_pair_list, bert
     with open(bert_simi_final_save_path, mode="wb") as f_w:
         pickle.dump(final_simi_dict, f_w)
     print("The merging of the simi feature pickle is complete")
-
 
 
 class OagbertFeatures:

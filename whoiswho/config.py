@@ -41,9 +41,10 @@ def version2path(version: dict) -> dict:
 
 
 
-paper_idf_dir = 'saved/paper-tf-idf/'
+paper_idf_path = 'saved/paper-tf-idf/'
+snd_embs_path ='saved/snd-embs/'
 pretrained_oagbert_path = "saved/oagbert-v2-sim/"
-
+pretrained_word2vec_path = "saved/word2vec/"
 configs = {
 
     "train_neg_sample"              : 19,
@@ -104,34 +105,4 @@ class RNDFilePathConfig:
     # feat_dict
     feat_dict_path = 'feat/'
 
-    '''
-    #bert simi feat
-
-    tmp_offline_bert_emb_save_path = bert_feat_root + 'train/'
-    tmp_cna_v1_bert_emb_feat_save_path = bert_feat_root + 'online_testv1/'
-    tmp_cna_v2_bert_emb_feat_save_path = bert_feat_root + 'online_testv2/'
-
-    tmp_offline_bert_simi_feat_save_path = bert_feat_root + 'train/'
-    tmp_cna_v1_bert_simi_feat_save_path = bert_feat_root + 'online_testv1/'
-    tmp_cna_v2_bert_simi_feat_save_path = bert_feat_root + 'online_testv2/'
-    
-    offline_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.offline.pkl'
-    cna_v1_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev1.pkl'
-    cna_v2_bert_simi_feat_path = bert_feat_root + 'pid2aid2bert_feat.onlinev2.pkl'
-
-
-    # graph simi feat 预备文件  "Hong_Li.pickle" is [(aid,author_path)...]
-    tmp_offline_graph_save_path = graph_feat_root + 'train/'
-    tmp_cna_v1_graph_feat_save_path = graph_feat_root + 'online_testv1/'
-    tmp_cna_v2_graph_feat_save_path = graph_feat_root + 'online_testv2/'
-
-    #graph simi feat  tmp片段
-    tmp_offline_graph_simi_feat_save_path = graph_feat_root + 'train/'
-    tmp_cna_v1_graph_simi_feat_save_path = graph_feat_root + 'online_testv1/'
-    tmp_cna_v2_graph_simi_feat_save_path = graph_feat_root + 'online_testv2/'
-    #graph simi feat 合并文件
-    offline_graph_simi_feat_path = graph_feat_root + 'pid2aid2graph_feat_gat.offline.pkl'
-    cna_v1_graph_simi_feat_path = graph_feat_root + 'pid2aid2graph_feat_gat.onlinev1.pkl'
-    cna_v2_graph_simi_feat_path = graph_feat_root + 'pid2aid2graph_feat_gat.onlinev2.pkl'
-    '''
 

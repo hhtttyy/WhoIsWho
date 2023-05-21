@@ -21,7 +21,7 @@ from operator import itemgetter
 from tqdm import tqdm
 import sys,os
 sys.path.append('../../')
-from whoiswho.config import paper_idf_dir
+from whoiswho.config import paper_idf_path
 
 np.set_printoptions(suppress=True)
 num_thread = int(multiprocessing.cpu_count() / 2)
@@ -33,7 +33,7 @@ class featureGeneration:
 
     def __loadEssential(self):
         # data_dir = os.path.abspath('../../'+paper_idf_dir)
-        data_dir = os.path.abspath('./whoiswho/' + paper_idf_dir)
+        data_dir = os.path.abspath('./whoiswho/' + paper_idf_path)
         print(data_dir)
         with open(data_dir + '/name_uniq_dict.json', "r") as file:
             self.name_uniq_dict = json.load(file)

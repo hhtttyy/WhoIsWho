@@ -59,7 +59,7 @@ trainer.predict(cell_model_list=cell_model_list)
 logger.info("Finish Predict Test data")
 
 # Modules-4: Evaluation on the valid data
-assignment = load_json('./whoiswho/training/result/result.valid.json')
+assignment = load_json('./whoiswho/training/rnd_result/result.valid.json')
 #Use the ground truth directly or load the downloaded ground truth
 ground_truth = valid[4]
 evaluate(assignment, ground_truth)
