@@ -132,13 +132,10 @@ class AdhocFeatures:
 
         #Modifying arguments when calling from outside
         if not raw_data_root:
-            # self.raw_data_root = '../../dataset/'+self.v2path['raw_data_root']
             self.raw_data_root = self.v2path['raw_data_root']
         if not processed_data_root:
-            # self.processed_data_root = '../../dataset/'+self.v2path["processed_data_root"]
             self.processed_data_root = self.v2path['processed_data_root']
         if not hand_feat_root:
-            # self.hand_feat_root = '../'+self.v2path['hand_feat_root']
             self.hand_feat_root = self.v2path['hand_feat_root']
 
         # self.data = ret

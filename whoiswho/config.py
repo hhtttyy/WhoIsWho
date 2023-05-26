@@ -1,5 +1,6 @@
 import time
 import os
+from os.path import join,dirname
 from typing import Tuple, List, Union, Dict, Callable, Any, Optional
 
 
@@ -10,12 +11,9 @@ def version2path(version: dict) -> dict:
     Map the dataset information to the corresponding path
     """
     name, task, type = list(version.values())
-    # data_root = f"data/{name}/{task}/" #using in ./dataset
-    # feat_root = f"feat/{name}/{task}/" #using in ./featureGenerator
-
-    # using in demo.py
-    data_root = f"./whoiswho/dataset/data/{name}/{task}/"
-    feat_root = f"./whoiswho/featureGenerator/feat/{name}/{task}/"
+    print(os.path.abspath(dirname(__file__)))
+    data_root =  join(os.path.abspath(dirname(__file__)), f'dataset/data/',name, task,'')
+    feat_root = join(os.path.abspath(dirname(__file__)), f'featureGenerator/feat/',name, task,'')
 
     #data
     raw_data_root = data_root
@@ -40,11 +38,10 @@ def version2path(version: dict) -> dict:
     return v2path
 
 
-
-paper_idf_path = 'saved/paper-tf-idf/'
-snd_embs_path ='saved/snd-embs/'
-pretrained_oagbert_path = "saved/oagbert-v2-sim/"
-pretrained_word2vec_path = "saved/word2vec/"
+paper_idf_path =  join(os.path.abspath(dirname(__file__)), 'saved/paper-tf-idf/')
+snd_embs_path  =  join(os.path.abspath(dirname(__file__)), 'saved/snd-embs/')
+pretrained_oagbert_path = join(os.path.abspath(dirname(__file__)), 'saved/oagbert-v2-sim/')
+pretrained_word2vec_path = join(os.path.abspath(dirname(__file__)), 'saved/word2vec/')
 configs = {
 
     "train_neg_sample"              : 19,

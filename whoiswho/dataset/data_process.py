@@ -15,6 +15,7 @@ from whoiswho.character.name_match.tool.interface import FindMain
 from whoiswho.character.match_name import  match_name
 from whoiswho.config import RNDFilePathConfig, configs, version2path
 from whoiswho.dataset import load_utils
+
 puncs = '[!“”"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~—～’]+'
 stopwords = ['at', 'based', 'in', 'of', 'for', 'on', 'and', 'to', 'an', 'using', 'with',
             'the', 'by', 'we', 'be', 'is', 'are', 'can']
@@ -57,7 +58,7 @@ def read_raw_pubs(raw_data_root,mode):
 
 
 def dump_name_pubs(raw_data_root,processed_data_root):
-    for mode in ['valid', 'test']:  # ['train', 'valid', 'test']
+    for mode in ['train', 'valid', 'test']:
 
         # train valid format: name2aid2pid
         # test format: name2pid
@@ -648,8 +649,8 @@ def processdata_SND(ret,version):
 
 
 def processdata_RND(ret,version):
-
-    # random.seed(66)
+    if isinstance(ret, str):
+        ret=load_json(ret)
     v2path = version2path(version)
     pprint(v2path)
     raw_data_root = v2path['raw_data_root']
@@ -664,8 +665,10 @@ def processdata_RND(ret,version):
 
     kfold_main_func(processed_data_root,offline_profile, offline_unass, 5)
 
+    logger.info('Begin Combine Data')
     # train+valid name2aid2pid
     get_name2aid2pid(raw_data_root,processed_data_root,name2aid2pids_path=RNDFilePathConfig.whole_name2aid2pid)
+    logger.info('Finish Combine Data')
 
     # Papers that have not been assigned
     pretreat_unass(raw_data_root,processed_data_root,RNDFilePathConfig.unass_candi_v1_path, "valid/cna_valid_unass.json",

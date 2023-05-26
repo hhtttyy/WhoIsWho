@@ -73,7 +73,7 @@ def test_config2data(test_config,debug_mod=False):
     unass_pid2aid = []  # [pid, [candi_aid,]]
 
     if debug_mod:
-        unass_list = unass_list[:40]
+        unass_list = unass_list[:20]
     for unass_pid, name in unass_list:
         candi_aids = list(unass_name2aid2pid_v1[name])
         unass_pid2aid.append((unass_pid, candi_aids))
@@ -86,7 +86,7 @@ class RNDTrainer:
     fit:给训练数据、特征 和模型 能训练model
     predict:给验证数据、特征 和训练好的模型 (根据 传参 判断直接有模型 或者通过路径加载)
     '''
-    def __init__(self, version, processed_data_root = None, hand_feat_root=None, bert_feat_root=None):
+    def __init__(self, version, debug=False ,processed_data_root = None, hand_feat_root=None, bert_feat_root=None):
         self.v2path = version2path(version)
         self.name = self.v2path['name']
         self.task = self.v2path['task']  # RND SND
@@ -94,21 +94,17 @@ class RNDTrainer:
                                    'only support RND task'
         self.type = self.v2path['type']  # train valid test
 
+        self.debug = debug
+
         # Modifying arguments when calling from outside
         self.processed_data_root = processed_data_root
         self.hand_feat_root = hand_feat_root
         self.bert_feat_root = bert_feat_root
         if not processed_data_root:
-            # self.processed_data_root = '../dataset/'+self.v2path["processed_data_root"]
-            # self.processed_data_root = os.path.abspath(self.processed_data_root) + '/'
             self.processed_data_root = self.v2path['processed_data_root']
         if not hand_feat_root:
-            # self.hand_feat_root = '../featureGenerator/'+self.v2path['hand_feat_root']
-            # self.hand_feat_root = os.path.abspath(self.hand_feat_root) + '/'
             self.hand_feat_root = self.v2path['hand_feat_root']
         if not bert_feat_root:
-            # self.bert_feat_root = '../featureGenerator/'+self.v2path['bert_feat_root']
-            # self.bert_feat_root = os.path.abspath(self.bert_feat_root) + '/'
             self.bert_feat_root = self.v2path['bert_feat_root']
 
         print(f'processed_data_root: {self.processed_data_root}\nhand_feat_root: {self.hand_feat_root}\nbert_feat_root: {self.bert_feat_root}\n ')
@@ -158,10 +154,11 @@ class RNDTrainer:
             'unass_path': self.processed_data_root + RNDFilePathConfig.unass_candi_v2_path,
             'name2aid2pid': self.processed_data_root + RNDFilePathConfig.whole_name2aid2pid,
         }
-        # initialize model_save_dir
-        os.makedirs(f'{self.task}_save_model', exist_ok=True)
+        # model_save_dir
+        os.makedirs(f'./whoiswho/training/{self.task}_save_model', exist_ok=True)
         self.model = GBDTModel(self.train_config_list,
-                               os.path.join(f'{self.task}_save_model/{log_time}'))
+                               os.path.join(f'{self.task}_save_model/{log_time}'),
+                               debug=self.debug)
 
     # use train data
     def fit(self) -> list:
@@ -173,10 +170,10 @@ class RNDTrainer:
         os.makedirs('./whoiswho/training/rnd_result', exist_ok=True)
         if self.type == 'valid':
             test_config = self.test_config_v1
-            eval_feat_data, unass_pid2aid = test_config2data(test_config)  #debug_mod=True
+            eval_feat_data, unass_pid2aid = test_config2data(test_config,debug_mod=self.debug)
         else: #test
             test_config = self.test_config_v2
-            eval_feat_data, unass_pid2aid = test_config2data(test_config)
+            eval_feat_data, unass_pid2aid = test_config2data(test_config,debug_mod=self.debug)
 
         if cell_model_path_list:
             cell_model_list = self.model.load(cell_model_path_list)

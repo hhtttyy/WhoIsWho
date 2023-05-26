@@ -43,14 +43,14 @@ class ProcessFeature:
 
         self.maxPapers = 40
         global bert_device
-        bert_device = torch.device(f'cuda:7' if torch.cuda.is_available() else 'cpu')
+        bert_device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
 
         self.matching_model = matchingModel(bert_device)
         self.matching_model.to(bert_device)
         self.matching_model.eval()
 
-        # _, self.bertModel = oagbert('../../'+pretrained_oagbert_path)
-        _, self.bertModel = oagbert('.whoiswho/' + pretrained_oagbert_path)
+
+        _, self.bertModel = oagbert( pretrained_oagbert_path)
         self.embedding_model = bertEmbeddingLayer(self.bertModel)
         self.embedding_model.to(bert_device)
         self.embedding_model.eval()
@@ -126,8 +126,9 @@ class ProcessFeature:
         allCandiNameAidPid = dict()  # {"candiName": [(Aid, [Pid])]}
         if not os.path.exists(candi_4name_bert_emb_path):
             os.makedirs(candi_4name_bert_emb_path, exist_ok=True)
+
         candi_4name_bert_emb_index_path = f"{candi_4name_bert_emb_path}candi_4name_bert_emb_index.pickle"
-        if not os.path.exists(candi_4name_bert_emb_index_path):
+        if not os.path.exists(candi_4name_bert_emb_index_path): # if not found, create a new one
             for insIndex in range(len(self.unassCandi)):
                 # Calculate the names of all authors involved in the test set
                 unassPid, candiName = self.unassCandi[insIndex]
@@ -171,7 +172,6 @@ class ProcessFeature:
                 tmp_4name_emb_list = []
 
                 for aidPidListItem in aidPidList:
-                    # 当前的处理的index
                     current_index = 0
 
                     current_aid = aidPidListItem[0]
@@ -369,13 +369,10 @@ class OagbertFeatures:
 
         # Modifying arguments when calling from outside
         if not raw_data_root:
-            # self.raw_data_root = '../../dataset/' + self.v2path['raw_data_root']
             self.raw_data_root =  self.v2path['raw_data_root']
         if not processed_data_root:
-            # self.processed_data_root = '../../dataset/' + self.v2path["processed_data_root"]
             self.processed_data_root = self.v2path['processed_data_root']
         if not bert_feat_root:
-            # self.bert_feat_root = '../' + self.v2path['bert_feat_root']
             self.bert_feat_root = self.v2path['bert_feat_root']
 
         if self.type == 'train':
@@ -439,17 +436,17 @@ class OagbertFeatures:
 
 
 if __name__ == "__main__":
-    data, version = load_utils.LoadData(name="v3", type="train", task='RND', download=False)
+    data, version = load_utils.LoadData(name="v3", type="train", task='RND')
     oagbert_features = OagbertFeatures(version)
     oagbert_features.get_oagbert_feature()
     logger.info("Finish Train data")
 
-    data, version = load_utils.LoadData(name="v3", type="valid", task='RND', download=False)
+    data, version = load_utils.LoadData(name="v3", type="valid", task='RND')
     oagbert_features = OagbertFeatures(version)
     oagbert_features.get_oagbert_feature()
     logger.info("Finish Valid data")
 
-    data, version = load_utils.LoadData(name="v3", type="test", task='RND', download=False)
+    data, version = load_utils.LoadData(name="v3", type="test", task='RND')
     oagbert_features = OagbertFeatures(version)
     oagbert_features.get_oagbert_feature()
     logger.info("Finish Test data")

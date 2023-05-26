@@ -332,7 +332,8 @@ class CellModel:
 class GBDTModel:
     def __init__(self,
                  train_config_list,
-                 model_save_dir):
+                 model_save_dir,
+                 debug=False):
         self.train_config_list = train_config_list # k fold train data
         self.model_save_dir = model_save_dir
         #Model configuration
@@ -564,12 +565,13 @@ class GBDTModel:
         self.cell_weight_sum = 0
         for cell_config in self.cell_list_config:
             self.cell_weight_sum += cell_config['cell_weight']
+        self.debug = debug
 
     def train_cell_model_as_stacking(self,cell_config, train_config_list, train_feat_data: FeatDataLoader,
                                      cell_save_root, cell_index: int):
         '''train one cell '''
         cell_feat_list = cell_config['feature_list']
-        cell_model = CellModel(cell_config['model'], len(train_config_list), debug_mod=False)
+        cell_model = CellModel(cell_config['model'], len(train_config_list), debug_mod= self.debug)
         cell_model.train_model(train_config_list, train_feat_data, cell_feat_list)
         save_pickle(cell_model, cell_save_root, f'cell-{cell_index}.pkl')
         return cell_model

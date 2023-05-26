@@ -51,7 +51,9 @@ class SNDTrainer:
     postmatch: 对离群点划分
     fit:给数据、特征 获取聚类结果 模仿run在循环中 1.特征 2.dbscan 3.调postmatch
     '''
-    def __init__(self, version, processed_data_root = None, w_author = 1.5, w_org = 1.0, w_venue=1.0, w_title= 0.33, text_weight=1.0):
+    def __init__(self, version, processed_data_root = None, w_author = 1.5,
+                 w_org = 1.0, w_venue=1.0, w_title= 0.33, text_weight=1.0,
+                 db_eps = 0.2,db_min = 4):
         self.v2path = version2path(version)
         self.name = self.v2path['name']
         self.task = self.v2path['task']  # RND SND
@@ -62,10 +64,8 @@ class SNDTrainer:
         # Modifying arguments when calling from outside
         self.processed_data_root = processed_data_root
         if not processed_data_root:
-            # self.processed_data_root = '../dataset/'+self.v2path["processed_data_root"]
-            # self.processed_data_root = os.path.abspath(self.processed_data_root) + '/'
             self.processed_data_root = self.v2path['processed_data_root']
-
+        self.raw_data_root = self.v2path['raw_data_root']
         self.w_author =  w_author
         self.w_org = w_org
         self.w_venue = w_venue
@@ -75,7 +75,7 @@ class SNDTrainer:
         self.semantic_feature = SemanticFeatures()
         self.relational_feature = RelationalFeatures(version,self.processed_data_root)
 
-        self.model =  DBSCANModel()
+        self.model =  DBSCANModel(db_eps,db_min)
 
 
     def save_pair(self,pubs, mode, name, outlier):
@@ -215,8 +215,8 @@ class SNDTrainer:
 
     def fit(self, add_sem=True, add_rel=True, if_post_match=True,
         add_a=True, add_o=True, add_v=True) :
-        pubs = read_pubs(self.type)
-        raw_pubs = read_raw_pubs(self.type)
+        pubs = read_pubs(self.raw_data_root,self.type)
+        raw_pubs = read_raw_pubs(self.raw_data_root,self.type)
         result = {}
 
         cur_time = datetime.now().strftime("%m%d%H%M")
