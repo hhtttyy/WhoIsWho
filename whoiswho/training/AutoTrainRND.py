@@ -26,6 +26,7 @@ def get_cell_pred(cell_model, unass_pid2aid, eval_feat_data, cell_feat_list):
             unass_pid2aid2score[unass_pid][candi_aid] = float(candi_preds[candi_index])
     return unass_pid2aid2score
 
+
 def get_result(cell_model, unass_pid2aid, eval_feat_data, cell_config, cell_i, res_unass_aid2score_list,
                cell_weight_sum, model_save_dir, info):
     this_cell_res = defaultdict(dict)
@@ -81,11 +82,6 @@ def test_config2data(test_config,debug_mod=False):
 
 
 class RNDTrainer:
-    '''
-    init 根据version提供各类数据与特征路径
-    fit:给训练数据、特征 和模型 能训练model
-    predict:给验证数据、特征 和训练好的模型 (根据 传参 判断直接有模型 或者通过路径加载)
-    '''
     def __init__(self, version, debug=False ,processed_data_root = None, hand_feat_root=None, bert_feat_root=None):
         self.v2path = version2path(version)
         self.name = self.v2path['name']
@@ -155,9 +151,10 @@ class RNDTrainer:
             'name2aid2pid': self.processed_data_root + RNDFilePathConfig.whole_name2aid2pid,
         }
         # model_save_dir
-        os.makedirs(f'./whoiswho/training/{self.task}_save_model', exist_ok=True)
+        model_save_dir = f'./whoiswho/training/{self.task}_save_model'
+        os.makedirs(model_save_dir, exist_ok=True)
         self.model = GBDTModel(self.train_config_list,
-                               os.path.join(f'{self.task}_save_model/{log_time}'),
+                               os.path.join(model_save_dir,f'{log_time}'),
                                debug=self.debug)
 
     # use train data

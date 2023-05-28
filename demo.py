@@ -1,3 +1,5 @@
+import argparse
+
 from whoiswho.dataset import LoadData,processdata_RND,processdata_SND
 from whoiswho.featureGenerator.rndFeature import AdhocFeatures , OagbertFeatures
 from whoiswho.training import RNDTrainer,SNDTrainer
@@ -8,7 +10,6 @@ from whoiswho import logger
 
 
 def rnd_demo():
-    '''
     # Module-1: Data Loading
     train, version = LoadData(name="v3", type="train", task='RND')
     valid, version = LoadData(name="v3", type="valid", task='RND')
@@ -19,7 +20,7 @@ def rnd_demo():
     train, version = LoadData(name="v3", type="train", task='RND')
     processdata_RND(train, version)
     logger.info("Finish pre-process")
-    '''
+
     # Modules-2: Feature Creation
     version = LoadData(name="v3", type="train", task='RND', just_version=True)
     adhoc_features = AdhocFeatures(version)
@@ -81,11 +82,11 @@ def snd_demo():
     trainer.fit()
     logger.info("Finish Predict Valid data")
 
-
     version = LoadData(name="v3", type="test", task='SND',just_version=True)
     trainer = SNDTrainer(version)
     trainer.fit()
     logger.info("Finish Predict Test data")
+
     #Modules-4: Evaluation
     #Upload the results to the whoiswho competition
 
@@ -93,9 +94,19 @@ def snd_demo():
 
 
 if __name__ == '__main__':
-    rnd_demo()
-    logger.info("Finish RND demo")
-    # snd_demo()
-    # logger.info("Finish SND demo")
+    parser = argparse.ArgumentParser(description='whole process')
+    parser.add_argument('--task_type', type=str, default="rnd",
+                        choices=['rnd', 'snd'])
+    args = parser.parse_args()
+    task_type = args.task_type
+    assert task_type == 'rnd' \
+           or task_type == 'snd'
+
+    if task_type == 'rnd':
+        rnd_demo()
+        logger.info("Finish RND Demo")
+    else:
+        snd_demo()
+        logger.info("Finish SND Demo")
 
 

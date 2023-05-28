@@ -86,12 +86,6 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
     """
     Generate paper features and relations by raw publication data and dump to files.
     Paper features consist of title, org, keywords. Paper relations consist of author_name, org, venue.
-
-    20230508@chengyq:
-    抽取每个待消歧名字下论文之间的关系数据，按照每行一条关系 paper_id \t relation (如：zEzLfzXl	miaogaojian)的形式
-    组织成txt文件。
-    对训练集、验证集和测试集的数据均进行抽取，并按照姓名存储，如data/relations/train/aimin_li下，包括了train-set中作者aimin_li
-    的四份关系文件，共存储了paper-author, paper-org, paper-venue, paper-title四类关系。
     """
 
     texts_dir = os.path.join(processed_data_root, 'extract_text')
@@ -149,9 +143,9 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
                 for author in pub["authors"]:
                     authorname = ''.join(filter(str.isalpha, author['name'])).lower()
                     token = authorname.split(" ")
-                    # 20230508@chengyq: 对姓名进行预处理，首先初步对姓和名进行划分，存储两种顺序的姓名，然后将其存储在一个字典中，以便后续将不同顺序的姓名统一
+
                     if len(token) == 2:
-                        # 20230508@chengyq: 成功提取了姓和名
+
                         authorname = token[0] + token[1]
                         authorname_reverse = token[1] + token[0]
                         if authorname not in authorname_dict:
@@ -160,7 +154,7 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
                             else:
                                 authorname = authorname_reverse
                     else:
-                        # 20230508@chengyq: 姓或者名被过度分割，简单地将空格删去
+
                         authorname = authorname.replace(" ", "")
 
                     if authorname != name and authorname != name_reverse:
@@ -206,7 +200,7 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
 
                 paper_features.append(
                     title + keyword + org
-                )  # 文件主要信息 title keyword org
+                )
                 wf.write(pid + '\t' + ' '.join(paper_features) + '\n')
 
             coa_file.close()
@@ -217,7 +211,7 @@ def dump_features_relations_to_file(raw_data_root,processed_data_root):
     print(f'All paper features extracted.')
     wf.close()
 
-    # v3/SND/processed_data/relations/train(数据集类型)/作者名name  paper_author.txt  paper_venue.txt paper_title.txt paper_org.txt
+
 
 
 
@@ -226,8 +220,6 @@ def dump_plain_texts_to_file(raw_data_root,processed_data_root):
     Dump raw publication data to files.
     Plain texts consist of all paper attributes and the authors' names and organizations (except year).
 
-    20230508@chengyq: 将训练集、验证集、测试集的原始paper_id--paper_info数据 [sna_train/valid/test_pub.json]
-    抽取成一个txt文件 [plain_text.txt]，用于训练word2vec。
     """
 
     train_pubs_dict = load_json(os.path.join(raw_data_root, 'train', 'train_pub.json'))
@@ -342,8 +334,6 @@ def printInfo(dicts):
 
 
 def split_train2dev(data: list,processed_data_root: str, unass_ratio=0.2):
-    '''将 train 划分为训练集和测试集'''
-
     def _get_last_n_paper(name, paper_ids, paper_info, ratio=0.2):
         cnt_unfind_author_num = 0  # 未找到作者 index 的数量
         name = cleaning_name(name)
@@ -379,7 +369,7 @@ def split_train2dev(data: list,processed_data_root: str, unass_ratio=0.2):
         assert len(years) > 0
         for y in years:
             papers_list.extend(now_years[y])
-        # 取后 ratio 的作为未分配论文
+
         split_gap = int((1 - ratio) * len(papers_list))
         unass_list = papers_list[split_gap:]
         prof_list = papers_list[0:split_gap]

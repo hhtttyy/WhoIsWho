@@ -46,11 +46,6 @@ def dump_result(pubs, pred):
     return result # List[List[pid]]
 
 class SNDTrainer:
-    '''
-    init 根据version提供各类数据与特征路径
-    postmatch: 对离群点划分
-    fit:给数据、特征 获取聚类结果 模仿run在循环中 1.特征 2.dbscan 3.调postmatch
-    '''
     def __init__(self, version, processed_data_root = None, w_author = 1.5,
                  w_org = 1.0, w_venue=1.0, w_title= 0.33, text_weight=1.0,
                  db_eps = 0.2,db_min = 4):
@@ -260,6 +255,6 @@ class SNDTrainer:
 
         save_dir = './whoiswho/training/snd_result'
         os.makedirs(save_dir, exist_ok=True)
-        save_json(result,save_dir, f'result.{self.type}.json')  # 保存'此数据集'各姓名的聚类结果
+        save_json(result,save_dir, f'result.{self.type}.json')
 
 

@@ -20,22 +20,11 @@ xgb_njob = int(multiprocessing.cpu_count() / 2)
 
 
 def random_select_instance(train_ins, nil_ratio=0.2, min_neg_num=10):
-    '''
-
-    Args:
-        train_ins: 输入的实例。 会进行深拷贝，不会改变原始值
-        nil_ratio: NIL 实例的比例
-        min_neg_num: 每个实例最少的候选者个数
-
-    Returns:
-
-    '''
-    # 改变传入的集合，从中采样出部分用于处理 nil 问题的分类器
     train_ins_num = len(train_ins)
     res_list = []
     nil_ins_max = int(train_ins_num * nil_ratio)
     random.shuffle(train_ins)
-    neg_ins = train_ins[0:nil_ins_max]  # 出现 NIL 问题的示例
+    neg_ins = train_ins[0:nil_ins_max]
     for ins in neg_ins:
         if len(ins[3]) >= min_neg_num:
             ins[2] = ''
@@ -54,8 +43,8 @@ def get_gbd_model(gbd_type='xgb', njob=xgb_njob, model_args=None):
 
     Args:
         gbd_type: ['xgb', 'cat', 'lgbm']
-        njob: 多线程数
-        model_args: 不按默认方式初始化时传入的参数
+        njob: multiprocess
+        model_args:
 
     Returns:
 
@@ -186,7 +175,6 @@ class CellModel:
         self.debug_mod = debug_mod
 
     def fit(self, whole_x, whole_y, training_type, fold_i=None):
-        # training_type 决定是训练第一层模型还是第二层模型
         print('\tfitting ', training_type)
         print('\t\twhole_x.shape ', whole_x.shape)
         print('\t\twhole_y.shape ', whole_y.shape)
